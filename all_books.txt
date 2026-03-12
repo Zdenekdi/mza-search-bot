@@ -1,0 +1,70 @@
+Searching for birth records in Ivanovice na Hané...
+Found 17 total book entries.
+----------------------------------------
+Book: 12612 (ID: 1353) | Ivanovice na Hanéřímskokatolická církev
+Years: 1632 - 1685-
+Link: https://www.mza.cz/actapublica/matrika/detail/1353
+----------------------------------------
+Book: 12613 (ID: 1354) | Ivanovice na Hanéřímskokatolická církev
+Years: 1686 - 1708-
+Link: https://www.mza.cz/actapublica/matrika/detail/1354
+----------------------------------------
+Book: 12614 (ID: 1355) | Ivanovice na Hanéřímskokatolická církev
+Years: 1710 - 1755-
+Link: https://www.mza.cz/actapublica/matrika/detail/1355
+----------------------------------------
+Book: 12615 (ID: 1356) | Ivanovice na Hanéřímskokatolická církev
+Years: 1755 - 1784-
+Link: https://www.mza.cz/actapublica/matrika/detail/1356
+----------------------------------------
+Book: 12616 (ID: 1359) | Ivanovice na Hanéřímskokatolická církev
+Years: 1784 - 1857-
+Link: https://www.mza.cz/actapublica/matrika/detail/1359
+----------------------------------------
+Book: 12617 (ID: 1362) | Ivanovice na Hanéřímskokatolická církev
+Years: 1858 - 1885-
+Link: https://www.mza.cz/actapublica/matrika/detail/1362
+----------------------------------------
+Book: 12618 (ID: 10504) | Ivanovice na Hanéřímskokatolická církev
+Years: 1886 - 1913-
+Link: https://www.mza.cz/actapublica/matrika/detail/10504
+----------------------------------------
+Book: 12625 (ID: 1367) | Ivanovice na Hanéřímskokatolická církev
+Years: --
+Link: https://www.mza.cz/actapublica/matrika/detail/1367
+----------------------------------------
+Book: 12626 (ID: 488) | Ivanovice na Hanéřímskokatolická církev
+Years: --
+Link: https://www.mza.cz/actapublica/matrika/detail/488
+----------------------------------------
+Book: 12627 (ID: 13127) | Ivanovice na Hanéřímskokatolická církev
+Years: --
+Link: https://www.mza.cz/actapublica/matrika/detail/13127
+----------------------------------------
+Book: 12630 (ID: 1368) | Ivanovice na Hanéřímskokatolická církev
+Years: --
+Link: https://www.mza.cz/actapublica/matrika/detail/1368
+----------------------------------------
+Book: 12631 (ID: 11527) | Ivanovice na Hanéřímskokatolická církev
+Years: --
+Link: https://www.mza.cz/actapublica/matrika/detail/11527
+----------------------------------------
+Book: 12632 (ID: 12694) | Ivanovice na Hanéřímskokatolická církev
+Years: --
+Link: https://www.mza.cz/actapublica/matrika/detail/12694
+----------------------------------------
+Book: 12635 (ID: 13363) | Ivanovice na Hanéřímskokatolická církev
+Years: --
+Link: https://www.mza.cz/actapublica/matrika/detail/13363
+----------------------------------------
+Book: 13358 (ID: 12884) | Ivanovice na Hanéřímskokatolická církev
+Years: --
+Link: https://www.mza.cz/actapublica/matrika/detail/12884
+----------------------------------------
+Book: 13359 (ID: 12696) | Ivanovice na Hanéčeskoslovenská církev
+Years: --
+Link: https://www.mza.cz/actapublica/matrika/detail/12696
+----------------------------------------
+Book: opis20 (ID: 10388) | Ivanovice na Hanéřímskokatolická církev
+Years: 1710 - 1755-
+Link: https://www.mza.cz/actapublica/matrika/detail/10388

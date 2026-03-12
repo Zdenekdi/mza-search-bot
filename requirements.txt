@@ -1,0 +1,6 @@
+requests
+beautifulsoup4
+lxml
+click
+Pillow
+httpx[http2]

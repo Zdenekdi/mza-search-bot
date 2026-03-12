@@ -1,0 +1,13 @@
+venv/
+mza_book_*/
+*.log
+nalezy_dias_ivanovice.csv
+checkpoint_search.json
+__pycache__/
+.DS_Store
+.env
+verified_scan.jpg
+detail_*.html
+search_results_*.txt
+search_births.txt
+search_deaths.txt
