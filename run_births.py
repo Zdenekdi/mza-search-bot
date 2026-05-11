@@ -2,7 +2,12 @@ import os
 import subprocess
 import sys
 
-os.environ['GEMINI_API_KEY'] = 'AIzaSyBT46wEtcpu_gq_-yABiJ2MlkXp_75s1NY'
+# Load API key from .env manually
+if os.path.exists('.env'):
+    with open('.env') as f:
+        for line in f:
+            if line.startswith('GEMINI_API_KEY='):
+                os.environ['GEMINI_API_KEY'] = line.strip().split('=', 1)[1]
 
 scans = ",".join(str(i) for i in range(65, 67)) # searching 2 scans for births
 query = "Najdi narození dětí s příjmením Dias (nebo podobně). Uveď datum, jméno dítěte a odkud rodina pochází (případně zmínku o mlýně)."

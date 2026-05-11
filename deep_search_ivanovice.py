@@ -5,9 +5,19 @@ import re
 import json
 import sys
 
+# Add src to path so we can import mza_search
+sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+
 from mza_search.client import MZAClient
 from mza_search.scanner import MZAScanner
 from mza_search.ai_reader import AIReader
+
+# Load API key from .env manually
+if os.path.exists('.env'):
+    with open('.env') as f:
+        for line in f:
+            if line.startswith('GEMINI_API_KEY='):
+                os.environ['GEMINI_API_KEY'] = line.strip().split('=', 1)[1]
 
 # All book IDs for Ivanovice na Hané
 BOOK_IDS = [1353, 1354, 1355, 1356, 1359, 1362, 10504, 1367, 488, 13127, 1368, 11527, 12694, 13363, 12884, 12696, 10388]
@@ -45,7 +55,8 @@ def get_total_scans(client, book_id):
 
 def main():
     if 'GEMINI_API_KEY' not in os.environ:
-        print("Set GEMINI_API_KEY first.")
+        print("!!! ERROR: GEMINI_API_KEY not found in environment variables.")
+        print("Please create a '.env' file based on '.env.template' or set the variable manually.")
         return
 
     client = MZAClient()

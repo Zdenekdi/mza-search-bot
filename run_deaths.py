@@ -2,7 +2,12 @@ import os
 import subprocess
 import sys
 
-os.environ['GEMINI_API_KEY'] = 'AIzaSyBT46wEtcpu_gq_-yABiJ2MlkXp_75s1NY'
+# Load API key from .env manually
+if os.path.exists('.env'):
+    with open('.env') as f:
+        for line in f:
+            if line.startswith('GEMINI_API_KEY='):
+                os.environ['GEMINI_API_KEY'] = line.strip().split('=', 1)[1]
 
 scans = ",".join(str(i) for i in range(104, 106)) # searching 2 scans for other deaths
 query = "Najdi úmrtí osoby jménem Jakub Dias (nebo Jakob Dias). Ne ten záznam z 23. března 1810 na straně 93, ale nějaký jiný, pokud existuje. Vypiš datum úmrtí, věk a rodiště nebo bydliště."
