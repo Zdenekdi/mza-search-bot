@@ -2,9 +2,10 @@ import click
 from mza_search.client import MZAClient
 from mza_search.scanner import MZAScanner
 from mza_search.ai_reader import AIReader
-from mza_search.scanner import MZAScanner
 import re
 import os
+import time
+import json
 
 def filter_by_years(entries, record_type, start_year, end_year):
     filtered = []
@@ -64,6 +65,7 @@ def search(locality, type, year_start, year_end):
 @click.argument('book_id')
 def lookup(book_id):
     """List localities and scan ranges within a book."""
+    book_id = re.sub(r'[^a-zA-Z0-9_-]', '', str(book_id))
     click.echo(f"Looking up sections for book {book_id}...")
     client = MZAClient()
     scanner = MZAScanner(client)
@@ -87,6 +89,7 @@ def lookup(book_id):
 @click.option('--output', default=None, help='Output filename')
 def download(book_id, scan_number, output):
     """Download and stitch a high-res scan image."""
+    book_id = re.sub(r'[^a-zA-Z0-9_-]', '', str(book_id))
     output_path = output or f"mza_{book_id}_scan_{scan_number}.jpg"
     click.echo(f"Downloading scan {scan_number} from book {book_id} to {output_path}...")
     
@@ -104,10 +107,10 @@ def download(book_id, scan_number, output):
 @click.option('--delay', type=float, default=1.0, help='Delay between scans in seconds to prevent blocking')
 def download_book(book_id, output_dir, delay):
     """Download all scans for an entire book."""
+    book_id = re.sub(r'[^a-zA-Z0-9_-]', '', str(book_id))
     _download_book_helper(book_id, output_dir, delay)
 
 def _download_book_helper(book_id, output_dir, delay, scan_list=None):
-    import time
     out_dir = output_dir or f"mza_book_{book_id}"
     os.makedirs(out_dir, exist_ok=True)
     click.echo(f"Preparing to download book {book_id} to {out_dir}/ ...")
@@ -116,20 +119,7 @@ def _download_book_helper(book_id, output_dir, delay, scan_list=None):
     scanner = MZAScanner(client)
     
     try:
-        url = f"https://www.mza.cz/actapublica/matrika/detail/{book_id}"
-        response = client.client.get(url)
-        import re, json
-        match = re.search(r'CreateSeadragon\(\s*(\[.*?\])\s*,', response.text, re.DOTALL)
-        if not match:
-             match = re.search(r'(\[[\s"]*https://www\.mza\.cz/iipsrv/iipsrv\.fcgi\?Deepzoom=.*?\])', response.text, re.DOTALL)
-        
-        if not match:
-             click.echo("Error: Could not determine total number of scans.", err=True)
-             return out_dir
-             
-        raw_images = match.group(1).replace("'", '"')
-        raw_images = re.sub(r',\s*\]', ']', raw_images)
-        images = json.loads(raw_images)
+        images = scanner.get_image_urls(book_id)
         total_scans = len(images)
         click.echo(f"Found {total_scans} valid scans.")
         
@@ -165,6 +155,7 @@ def _download_book_helper(book_id, output_dir, delay, scan_list=None):
 @click.option('--scans', default=None, help='Comma-separated list of scans to check (e.g. 15,16,17)')
 def search_book(book_id, query, scans):
     """Automatically download and use AI to read a book."""
+    book_id = re.sub(r'[^a-zA-Z0-9_-]', '', str(book_id))
     if 'GEMINI_API_KEY' not in os.environ:
          click.echo("Error: GEMINI_API_KEY environment variable is not set.", err=True)
          click.echo("Please set it before running this command: export GEMINI_API_KEY='your_key'", err=True)
