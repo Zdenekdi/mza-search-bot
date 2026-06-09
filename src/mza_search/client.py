@@ -4,7 +4,7 @@ from .parser import MZAParser
 class MZAClient:
     BASE_URL = "https://www.mza.cz/actapublica/matrika/hledani"
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Using httpx with HTTP/2 support
         self.client = httpx.Client(
             http2=True,
@@ -18,17 +18,21 @@ class MZAClient:
             follow_redirects=True
         )
 
-    def search_by_locality(self, locality, page=1):
+    def search_by_locality(self, locality: str, page: int = 1) -> str:
         params = {
             'typ': 'obec',
             'search_by_obec': locality,
             'page': page
         }
-        response = self.client.get(self.BASE_URL, params=params)
-        response.raise_for_status()
-        return response.text
+        try:
+            response = self.client.get(self.BASE_URL, params=params)
+            response.raise_for_status()
+            return response.text
+        except httpx.HTTPError as e:
+            print(f"HTTPError fetching locality {locality}: {e}")
+            raise
 
-    def fetch_all_results(self, locality):
+    def fetch_all_results(self, locality: str) -> list[dict]:
         first_page_html = self.search_by_locality(locality, page=1)
         parser = MZAParser(first_page_html)
         all_entries = parser.parse_results()

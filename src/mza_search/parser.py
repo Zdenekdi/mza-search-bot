@@ -2,10 +2,10 @@ from bs4 import BeautifulSoup
 import re
 
 class MZAParser:
-    def __init__(self, html):
+    def __init__(self, html: str) -> None:
         self.soup = BeautifulSoup(html, 'lxml')
 
-    def parse_results(self):
+    def parse_results(self) -> list[dict]:
         table = self.soup.find('table', id='table')
         if not table:
             return []
@@ -38,7 +38,7 @@ class MZAParser:
             entries.append(entry)
         return entries
 
-    def get_max_pages(self):
+    def get_max_pages(self) -> int:
         pagination = self.soup.find('ul', class_='pagination')
         if not pagination:
             return 1

@@ -9,10 +9,10 @@ class MZAScanner:
     VIEWER_URL = "https://www.mza.cz/actapublica/matrika/detail/"
     TILE_URL_TEMPLATE = "https://www.mza.cz/actapublica/tiles/{path}/"
 
-    def __init__(self, client):
+    def __init__(self, client: 'MZAClient') -> None:
         self.client = client  # Reuse MZAClient session
 
-    def lookup_scan_ranges(self, book_id):
+    def lookup_scan_ranges(self, book_id: str) -> list[dict]:
         url = f"{self.VIEWER_URL}{book_id}"
         response = self.client.client.get(url)
         response.raise_for_status()
@@ -45,7 +45,7 @@ class MZAScanner:
         
         return sections
 
-    def get_image_info(self, book_id, scan_number):
+    def get_image_urls(self, book_id: str) -> list[str]:
         url = f"{self.VIEWER_URL}{book_id}"
         response = self.client.client.get(url)
         
@@ -66,15 +66,19 @@ class MZAScanner:
             # Handle possible trailing commas
             raw_images = re.sub(r',\s*\]', ']', raw_images)
             images = json.loads(raw_images)
-        except:
+            return images
+        except json.JSONDecodeError:
             raise Exception("Failed to parse images info from page.")
+
+    def get_image_info(self, book_id: str, scan_number: int) -> str:
+        images = self.get_image_urls(book_id)
 
         if scan_number < 1 or scan_number > len(images):
             raise Exception(f"Invalid scan number {scan_number}. Book has {len(images)} scans.")
             
         return images[scan_number - 1] # This is now a full URL to the .dzi
 
-    def download_scan(self, book_id, scan_number, output_path):
+    def download_scan(self, book_id: str, scan_number: int, output_path: str) -> str:
         dzi_url = self.get_image_info(book_id, scan_number)
         
         # 1. Fetch DZI metadata
@@ -103,12 +107,22 @@ class MZAScanner:
         for r in range(num_rows):
             for c in range(num_cols):
                 tile_url = f"{tile_base}/{max_level}/{c}_{r}.jpg"
-                tile_res = self.client.client.get(tile_url)
-                if tile_res.status_code == 200:
-                    tile_img = Image.open(io.BytesIO(tile_res.content))
-                    full_image.paste(tile_img, (c * tile_size, r * tile_size))
-                else:
-                    print(f"Warning: Failed to fetch tile {c}_{r}")
+                success = False
+                for attempt in range(3):
+                    try:
+                        tile_res = self.client.client.get(tile_url)
+                        if tile_res.status_code == 200:
+                            tile_img = Image.open(io.BytesIO(tile_res.content))
+                            full_image.paste(tile_img, (c * tile_size, r * tile_size))
+                            success = True
+                            break
+                        else:
+                            print(f"Warning: Attempt {attempt + 1} failed to fetch tile {c}_{r} with status {tile_res.status_code}")
+                    except Exception as e:
+                        print(f"Warning: Attempt {attempt + 1} failed to fetch or decode tile {c}_{r} due to error: {e}")
+
+                if not success:
+                    print(f"Error: Failed to process tile {c}_{r} after 3 attempts.")
         
         full_image.save(output_path, "JPEG", quality=90)
         return output_path
