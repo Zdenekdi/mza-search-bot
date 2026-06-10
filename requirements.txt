@@ -4,3 +4,7 @@ lxml
 click
 Pillow
 httpx[http2]
+
+pytest
+pytest-mock
+pytest-httpx
