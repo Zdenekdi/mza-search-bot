@@ -132,31 +132,350 @@ class PEROReader:
 
 
 # ─────────────────────────────────────────────
+# Apple Local Reader (Entity Linking)
+# ─────────────────────────────────────────────
+class AppleLocalReader:
+    """
+    Lokální OpenAI-kompatibilní klient připojující se na localhost:11434.
+    Očekává model `apple-foundationmodel`.
+    Slouží primárně k Entity Linkingu - bere surový text (např. z Transkribusu)
+    a porovnává ho s předem načteným rodokmenem (family tree).
+    """
+    def __init__(self):
+        self.base_url = "http://localhost:11435/v1"
+        self.model = "gemma2:2b"
+        self.available = True
+        
+        # Načtení rodokmenu pomocí nového parseru
+        self.family_tree = ""
+        tree_path = Path(__file__).parent.parent.parent / "dias_family_tree.md"
+        try:
+            from mza_search.family_tree import FamilyTreeManager
+            mgr = FamilyTreeManager(str(tree_path))
+            self.family_tree = mgr.get_context_string()
+        except Exception as e:
+            print(f"[AppleLocalReader] Nelze načíst rodokmen přes parser: {e}")
+
+    def analyze_text(self, text: str) -> str:
+        if not text.strip():
+            return "NENALEZENO"
+            
+        system_prompt = (
+            "Jsi expert na genealogii a čtení historických matrik. "
+            "Zde je ověřený rodokmen rodiny Dias a záchytné body (např. profese mlynář, lokace Zlobice č.p. 15, Ivanovice na Hané, apod.):\n\n"
+            f"{self.family_tree}\n\n"
+            "DŮLEŽITÉ: Při vyhledávání pečlivě kontroluj i jména manželek nebo manželů (pokud jsou uvedeni), protože pomáhají potvrdit shodu (např. při sňatku).\n\n"
+            "ÚKOL:\n"
+            "Níže je surový text extrahovaný z historické matriky pomocí OCR (obsahuje chyby čtení a starou němčinu/češtinu).\n"
+            "Najdi jakoukoliv potenciální shodu s osobami z rodokmenu, nebo obecně s příjmením Dias/Dyas/Dijas a profesí mlynář v daných lokacích.\n"
+            "Pokud najdeš shodu, vypiš jméno osoby z rodokmenu, u které shodu vidíš, a zdůvodnění proč (např. sedí manželka, sedí lokace).\n"
+            "Pokud žádnou spojitost nevidíš, vrať POUZE slovo 'NENALEZENO'."
+        )
+        
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"Surový text z matriky k analýze:\n{text}"}
+        ]
+        
+        try:
+            resp = requests.post(
+                f"{self.base_url}/chat/completions",
+                json={
+                    "model": self.model,
+                    "messages": messages,
+                    "temperature": 0.2
+                },
+                timeout=120
+            )
+            if resp.status_code == 200:
+                answer = resp.json()["choices"][0]["message"]["content"]
+                if "NENALEZENO" in answer.upper() and len(answer) < 50:
+                    return "NENALEZENO"
+                return answer.strip()
+            else:
+                print(f"[AppleLocalReader] API Error {resp.status_code}: {resp.text}")
+                return "Error: Local API Failed"
+        except Exception as e:
+            print(f"[AppleLocalReader] Chyba volání: {e}")
+            return "Error: Connection Failed"
+
+
+# ─────────────────────────────────────────────
+# Local Copilot CLI reader
+# ─────────────────────────────────────────────
+class CopilotReader:
+    """
+    Využívá lokálního GitHub Copilot CLI pro analýzu obrázků.
+    Bez API limitů a úplně místní.
+    """
+
+    def __init__(self):
+        import subprocess
+        self.available = True
+        try:
+            result = subprocess.run(['copilot', '--version'], capture_output=True, timeout=5)
+            if result.returncode != 0:
+                self.available = False
+                print("[CopilotReader] Copilot CLI není dostupný")
+        except Exception as e:
+            self.available = False
+            print(f"[CopilotReader] Error checking copilot: {e}")
+
+    def query_image(self, image_path: str, prompt: str) -> str:
+        """
+        Pošle prompt a obrázek Copilotovi pomocí CLI s --attachment.
+        """
+        if not self.available:
+            return "Error: Copilot CLI not available"
+        
+        try:
+            import subprocess
+            
+            # Zavoláme Copilota s obrázkem jako attachment
+            result = subprocess.run(
+                ['copilot', 
+                 '--prompt', prompt,
+                 '--attachment', image_path,
+                 '--allow-all'
+                ],
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
+            
+            if result.returncode == 0:
+                return result.stdout.strip()
+            else:
+                return f"Error: {result.stderr[:200]}"
+                
+        except Exception as e:
+            return f"Error: {e}"
+
+
+# ─────────────────────────────────────────────
 # Gemini fallback reader
 # ─────────────────────────────────────────────
 class GeminiReader:
     """
-    Záložní čtečka využívající Gemini 2.0 Flash.
+    Záložní čtečka využívající Gemini 2.5 Flash s integrovaným rodokmenem.
     Používá se pouze pokud PERO OCR není dostupné nebo selže.
     """
 
     def __init__(self):
-        from google import genai
-        if 'GEMINI_API_KEY' not in os.environ:
-            raise ValueError("GEMINI_API_KEY není nastaven.")
-        self.client = genai.Client()
+        import google.genai
+        if 'GEMINI_API_KEY' not in os.environ and 'GOOGLE_API_KEY' not in os.environ:
+            raise ValueError("GEMINI_API_KEY nebo GOOGLE_API_KEY není nastaven.")
+        self.client = google.genai.Client()
         self.model_name = 'gemini-2.0-flash'
+        
+        # Načtení rodokmenu
+        self.family_tree = ""
+        tree_path = Path(__file__).parent.parent.parent / "dias_family_tree.md"
+        try:
+            from mza_search.family_tree import FamilyTreeManager
+            mgr = FamilyTreeManager(str(tree_path))
+            self.family_tree = mgr.get_context_string()
+        except Exception as e:
+            print(f"[GeminiReader] Nelze načíst rodokmen přes parser: {e}")
 
     def query_image(self, image_path: str, prompt: str) -> str:
         try:
             img = Image.open(image_path)
+            
+            system_prompt = (
+                "Jsi expert na genealogii a čtení historických matrik (17.-19. století) psaných kurentem a starou němčinou/češtinou.\n"
+                "Zde je ověřený rodokmen rodiny Dias a záchytné body:\n\n"
+                f"{self.family_tree}\n\n"
+                "DŮLEŽITÉ: Při vyhledávání pečlivě kontroluj i jména manželek nebo manželů (pokud jsou uvedeni), protože pomáhají potvrdit shodu.\n\n"
+                "ÚKOL:\n"
+                "Přečti rukopis na přiloženém obrázku.\n"
+                "Najdi jakoukoliv potenciální shodu s osobami z rodokmenu, nebo obecně s příjmením Dias/Dyas/Dijas a profesí mlynář v daných lokacích.\n"
+                "Pokud najdeš shodu, vypiš jméno osoby z rodokmenu, u které shodu vidíš, a zdůvodnění proč, spolu s přepisem záznamu.\n"
+                "Pokud žádnou spojitost nevidíš, vrať POUZE slovo 'NENALEZENO'."
+            )
+            
             response = self.client.models.generate_content(
                 model=self.model_name,
-                contents=[img, prompt]
+                contents=[system_prompt, img]
             )
-            return response.text
+            
+            answer = response.text
+            if "NENALEZENO" in answer.upper() and len(answer) < 50:
+                return "NENALEZENO"
+            return answer.strip()
         except Exception as e:
             return f"Error: {e}"
+
+# ─────────────────────────────────────────────
+# Transkribus API Reader
+# ─────────────────────────────────────────────
+class TranskribusReader:
+    """
+    Konzumuje Transkribus REST API.
+    Nahrává jednotlivé obrázky do výchozí sbírky uživatele.
+    """
+    def __init__(self):
+        self.email = os.environ.get('TRANSKRIBUS_EMAIL')
+        self.password = os.environ.get('TRANSKRIBUS_PASSWORD')
+        # Defaultujeme na model Old Czech Handwriting (with spaces)
+        self.model_id = os.environ.get('TRANSKRIBUS_MODEL_ID', '341425') 
+        self.col_id = os.environ.get('TRANSKRIBUS_COLLECTION_ID')
+        
+        self.base_url = "https://transkribus.eu/TrpServer/rest"
+        self.available = bool(self.email and self.password)
+        self.api = None
+        self.session_token = None
+
+    def _login(self) -> bool:
+        if self.api is not None:
+            return True
+            
+        try:
+            from transkribus_rest_api import transkribus_rest_api
+            from transkribus_rest_api.types import UploadPage
+            print("  [Transkribus] Přihlašování k API (transkribus-rest-api)...")
+            # Pro použití jako běžný objekt musíme vyvolat kontext manažer ručně, nebo jej spravovat přes with
+            # Kvůli jednoduchosti se přihlásíme pomocí čistých requests pro získání JSESSIONID, 
+            # ale použijeme i oficiální balíček
+            self._ctx = transkribus_rest_api(self.email, self.password)
+            self.api = self._ctx.__enter__()
+            self.session_token = self.api.session_id.session_id
+            
+            # Pokud nemáme ID sbírky, vezmeme tu první (uživatel má defaultní sbírku po registraci)
+            if not self.col_id:
+                cols_resp = self.api.collections.list()
+                if 'trpCollection' in cols_resp and cols_resp['trpCollection']:
+                    self.col_id = cols_resp['trpCollection'][0]['colId']
+                    print(f"  [Transkribus] Zvolena sbírka (Collection ID): {self.col_id}")
+            return True
+        except Exception as e:
+            print(f"  [Transkribus] Chyba přihlášení: {e}")
+            self.api = None
+            return False
+
+    def extract_text(self, image_path: str) -> str | None:
+        """Nahraje obrázek do nového dokumentu, počká na zpracování a vrátí text"""
+        if not self.available or not self._login():
+            return None
+            
+        try:
+            from transkribus_rest_api.types import UploadPage
+            import xml.etree.ElementTree as ET
+            import hashlib
+            
+            cookies = {'JSESSIONID': self.session_token}
+            img_path = Path(image_path)
+            img_name = img_path.name
+            
+            # 1. Vytvoření nového dokumentu a nahrání přes transkribus_rest_api
+            print(f"  [Transkribus] Vytvářím dokument a nahrávám obrázek {img_name}...")
+            # Spočítáme MD5
+            md5_hash = hashlib.md5(img_path.read_bytes()).hexdigest()
+            page = UploadPage(image=img_path, page_xml=None, page_nr=1, image_md5=md5_hash)
+            
+            doc_id = self.api.upload_document(int(self.col_id), f"MZA_Search_{img_name}", [page])
+            print(f"  [Transkribus] Dokument nahrán úspěšně. (DocID: {doc_id})")
+            
+            # Nyní potřebujeme získat ID stránky, pro spuštění HTR
+            # Dokument se zpracovává na serveru, proto zkusíme počkat
+            import time
+            page_id = None
+            for wait_attempt in range(12):
+                fulldoc_resp = requests.get(f"{self.base_url}/collections/{self.col_id}/{doc_id}/fulldoc", cookies=cookies)
+                if fulldoc_resp.status_code == 200:
+                    try:
+                        page_id = fulldoc_resp.json()['pageList']['pages'][0]['pageId']
+                        break
+                    except (KeyError, IndexError):
+                        pass
+                print(f"  [Transkribus] Čekám na dostupnost dokumentu {doc_id} (pokus {wait_attempt+1}/12)...")
+                time.sleep(5)
+                
+            if not page_id:
+                print(f"  [Transkribus] Nelze získat pageId pro dokument {doc_id}.")
+                return None
+            
+            # 3. Spuštění rozpoznávání (HTR)
+            print(f"  [Transkribus] Spouštím model (ID: {self.model_id})...")
+            payload = {"docId": doc_id, "pageList": {"pages": [{"pageId": page_id}]}}
+            htr_url = f"{self.base_url}/pylaia/{self.col_id}/{self.model_id}/recognition?id={doc_id}&pages=1"
+            htr_resp = requests.post(htr_url, cookies=cookies, json=payload)
+            
+            if htr_resp.status_code == 404:
+                htr_url = f"{self.base_url}/recognition/{self.col_id}/{self.model_id}/htrCITlab?id={doc_id}&pages=1"
+                htr_resp = requests.post(htr_url, cookies=cookies, json=payload)
+                
+            if htr_resp.status_code != 200:
+                print(f"  [Transkribus] Nelze spustit model: {htr_resp.text}")
+                return None
+                
+            try:
+                js = htr_resp.json()
+                if isinstance(js, list):
+                    job_id = js[0].get('jobId', js[0])
+                elif isinstance(js, dict):
+                    job_id = js.get('jobId')
+                else:
+                    job_id = js
+            except:
+                import xml.etree.ElementTree as ET
+                try:
+                    root = ET.fromstring(htr_resp.text)
+                    job_id = root.findtext(".//jobId")
+                except:
+                    job_id = None
+                    
+            if not job_id:
+                print(f"  [Transkribus] Nelze vyčíst jobId: {htr_resp.text}")
+                return None
+            
+            # 4. Polling stavu úlohy
+            print("  [Transkribus] Čekám na dokončení (záleží na vytížení cloudu)...")
+            for _ in range(60): # Max 5 minut čekání (60 x 5s)
+                time.sleep(5)
+                job_resp = requests.get(f"{self.base_url}/jobs/{job_id}", cookies=cookies)
+                if job_resp.status_code == 200:
+                    state = job_resp.json()['state']
+                    if state == "FINISHED":
+                        break
+                    elif state in ["FAILED", "CANCELED"]:
+                        print(f"  [Transkribus] Chyba úlohy na serveru (stav: {state}).")
+                        return None
+            else:
+                print("  [Transkribus] Vypršel čas (Timeout) při čekání na server.")
+                return None
+            
+            # 5. Získání textu
+            print("  [Transkribus] Stahuji a parsuji výsledek...")
+            fulldoc_resp = requests.get(f"{self.base_url}/collections/{self.col_id}/{doc_id}/fulldoc", cookies=cookies)
+            if fulldoc_resp.status_code != 200:
+                return None
+                
+            # Zjistíme URL PAGE XML souboru s transkripcí
+            transcripts = fulldoc_resp.json()['pageList']['pages'][0].get('tsList', {}).get('transcripts', [])
+            if not transcripts:
+                print("  [Transkribus] Žádný text nebyl vrácen.")
+                return None
+                
+            page_xml_url = transcripts[0]['url']
+            xml_resp = requests.get(page_xml_url, cookies=cookies)
+            
+            # PAGE XML Parser: Hledáme uzly <Unicode> které obsahují rozpoznaný text řádku
+            root = ET.fromstring(xml_resp.content)
+            text_lines = []
+            
+            # Hledání s ohledem na ignorování jmenných prostorů (namespace)
+            for elem in root.iter():
+                if elem.tag.endswith('Unicode') and elem.text:
+                    text_lines.append(elem.text.strip())
+
+            final_text = "\n".join(text_lines)
+            return final_text
+            
+        except Exception as e:
+            print(f"  [Transkribus] Neočekávaná chyba: {e}")
+            return None
+
 
 
 # ─────────────────────────────────────────────
@@ -165,40 +484,33 @@ class GeminiReader:
 class AIReader:
     """
     Hybridní čtečka:
-      1. Pokusí se extrahovat text přes PERO OCR (specializovaný na historické rukopisy).
-      2. Hledá příjmení Dias (a varianty) pomocí regex v extrahovaném textu.
-      3. Pokud PERO OCR selže nebo API klíč chybí, použije Gemini jako fallback.
-
-    Tato třída zachovává stejné rozhraní jako původní AIReader,
-    takže ostatní skripty (deep_search_ivanovice.py apod.) nevyžadují změny.
+      1. 'hybrid' - Zkusí Transkribus, pak Copilot, VUT API, nakonec Gemini.
+      2. 'transkribus' - Pouze Transkribus.
+      3. 'pero' - Pouze VUT API.
+      4. 'gemini' - Pouze Gemini.
     """
 
-    MODE_HYBRID = 'hybrid'   # PERO primárně, Gemini jako fallback
-    MODE_PERO   = 'pero'     # pouze PERO OCR + regex
-    MODE_GEMINI = 'gemini'   # pouze Gemini (původní chování)
+    MODE_HYBRID      = 'hybrid'
+    MODE_TRANSKRIBUS = 'transkribus'
+    MODE_PERO        = 'pero'
+    MODE_GEMINI      = 'gemini'
 
-    def __init__(self, mode: str = MODE_HYBRID):
+    def __init__(self, mode: str = MODE_TRANSKRIBUS):
         self.mode = mode
-        self.pero = PEROReader()
-        self._gemini = None  # lazy init
+        self.apple = AppleLocalReader()
+        self.transkribus = TranskribusReader()
+        self.gemini = None
 
-        if mode == self.MODE_HYBRID:
-            if self.pero.available:
-                print("[AIReader] Režim: HYBRID (PERO OCR primárně, Gemini fallback)")
+        if mode == self.MODE_TRANSKRIBUS:
+            if self.transkribus.available:
+                print(f"[AIReader] Režim: TRANSKRIBUS (Model ID: {self.transkribus.model_id}) + APPLE LOCAL LINKER")
             else:
-                print("[AIReader] PERO_API_KEY nenalezen → fallback na Gemini")
-        elif mode == self.MODE_PERO:
-            if not self.pero.available:
-                raise ValueError("PERO_API_KEY není nastaven, režim 'pero' nelze použít.")
-            print("[AIReader] Režim: PERO OCR only")
+                print("[AIReader] Transkribus chybí.")
+        elif mode == self.MODE_GEMINI:
+            self.gemini = GeminiReader()
+            print("[AIReader] Režim: GEMINI 2.5 FLASH")
         else:
-            print("[AIReader] Režim: Gemini only")
-
-    @property
-    def gemini(self) -> GeminiReader:
-        if self._gemini is None:
-            self._gemini = GeminiReader()
-        return self._gemini
+            print("[AIReader] Pouze Apple Local Linker")
 
     # ── Hlavní metoda ──────────────────────────────────────────────────────
     def query_image(self, image_path: str, prompt: str) -> str:
@@ -209,41 +521,32 @@ class AIReader:
           - "Error: ..." pokud nastala chyba
         """
         if self.mode == self.MODE_GEMINI:
+            print(f"  [Gemini] Zpracovávám obrázek {Path(image_path).name} pomocí Vision API...")
             return self.gemini.query_image(image_path, prompt)
 
-        # ── 1. Pokus přes PERO OCR ─────────────────────────────────────────
-        if self.pero.available:
-            print(f"  [PERO] Zpracovávám {Path(image_path).name}...")
-            extracted_text = self.pero.extract_text(image_path)
-
-            if extracted_text:
-                return self._search_in_text(extracted_text, image_path)
-            else:
-                print(f"  [PERO] Prázdný výsledek, zkouším Gemini fallback...")
-
-        # ── 2. Gemini fallback ─────────────────────────────────────────────
-        if self.mode == self.MODE_PERO:
-            return "Error: PERO OCR selhalo a Gemini fallback je zakázán (mode=pero)"
-
-        print(f"  [Gemini] Analyzuji {Path(image_path).name}...")
-        return self.gemini.query_image(image_path, prompt)
+        if not self.transkribus.available:
+            return "Error: Transkribus is not available"
+            
+        print(f"  [Transkribus] Zpracovávám {Path(image_path).name} přes cloudové API...")
+        extracted_text = self.transkribus.extract_text(image_path)
+        if extracted_text:
+            return self._search_in_text(extracted_text, image_path)
+        else:
+            print("  [Transkribus] Prázdný výsledek.")
+            return "Error: Transkribus vrátil prázdný výsledek."
 
     # ── Pomocné metody ─────────────────────────────────────────────────────
     def _search_in_text(self, text: str, image_path: str) -> str:
-        """Hledá příjmení v OCR textu pomocí regex."""
+        """Použije AppleLocalReader k nalezení spojitostí."""
+        print(f"  [Apple] Analyzuji získaný text (délka: {len(text)} znaků)...")
+        result = self.apple.analyze_text(text)
+        
+        # Můžeme také vypsat, pokud Transkribus nalezl 'Dias' natvrdo
         matches = COMBINED_PATTERN.findall(text)
-        if not matches:
-            return "NENALEZENO"
-
-        # Vrátí kontext: řádky obsahující shodu
-        found_lines = []
-        for line in text.splitlines():
-            if COMBINED_PATTERN.search(line):
-                found_lines.append(line.strip())
-
-        summary = f"[PERO OCR nalezl] Příjmení: {set(matches)}\n"
-        summary += "\n".join(found_lines[:10])  # max 10 řádků
-        return summary
+        if matches:
+            print(f"  [Regex Fallback] Ve zdrojovém textu byl nelezen řetězec: {set(matches)}")
+            
+        return result
 
     # ── Kompatibilní metoda pro cli.py ────────────────────────────────────
     def search_book_directory(self, directory_path: str, query: str, scan_list=None):

@@ -12,13 +12,14 @@ from mza_search.client import MZAClient
 from mza_search.scanner import MZAScanner
 from mza_search.ai_reader import AIReader
 
-# Load API key from .env manually
+# Load environment variables from .env manually
 if os.path.exists('.env'):
     with open('.env') as f:
         for line in f:
-            if line.startswith('GEMINI_API_KEY='):
-                os.environ['GEMINI_API_KEY'] = line.strip().split('=', 1)[1]
-
+            line = line.strip()
+            if line and not line.startswith('#'):
+                key, val = line.split('=', 1)
+                os.environ[key.strip()] = val.strip()
 # All book IDs for Ivanovice na Hané
 BOOK_IDS = [1353, 1354, 1355, 1356, 1359, 1362, 10504, 1367, 488, 13127, 1368, 11527, 12694, 13363, 12884, 12696, 10388]
 CHECKPOINT_FILE = 'checkpoint_search.json'
@@ -61,7 +62,7 @@ def main():
 
     client = MZAClient()
     scanner = MZAScanner(client)
-    ai_reader = AIReader()
+    ai_reader = AIReader(mode=AIReader.MODE_GEMINI)
     
     output_file = 'nalezy_dias_ivanovice.csv'
     file_exists = os.path.isfile(output_file)
@@ -159,10 +160,10 @@ def main():
                         time.sleep(10)
                 
                 if retry_count == max_retries:
-                    print(f"  FAILED to process scan {i} after {max_retries} attempts. Moving on to next scan but not marking as finished.")
-                    # We don't update the checkpoint for this scan if it failed all retries
-                    # so it will be tried again on next run.
-
+                    print(f"  FAILED to process scan {i} after {max_retries} attempts. Zastavuji skript, aby nedošlo k přeskočení stránek.")
+                    print(f"  Až budete mít opět k dispozici tokeny (např. zítra), skript začne automaticky od skenu {i}.")
+                    sys.exit(1)
+            
             print(f"Finished current batch of book {book_id}")
 
 if __name__ == "__main__":
