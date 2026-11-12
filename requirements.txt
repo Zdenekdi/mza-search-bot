@@ -4,6 +4,7 @@ lxml
 click
 Pillow
 httpx[http2]
+python-dotenv
 
 pytest
 pytest-mock
