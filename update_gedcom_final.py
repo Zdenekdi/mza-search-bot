@@ -1,0 +1,253 @@
+import os
+
+gedcom_content = """0 HEAD
+1 SOUR Antigravity_Genealogy_Bot
+2 VERS 1.0
+2 NAME Antigravity
+1 DATE 12 SEP 2026
+1 CHAR UTF-8
+0 @I_JAN_ST@ INDI
+1 NAME Jan /Dias/
+1 SEX M
+1 BIRT
+2 DATE ABT 1570
+1 DEAT
+2 DATE BEF 1603
+2 PLAC Ivanovice na Hané, Kněžský mlýn
+1 OCCU Panský mlynář
+1 FAMS @F_JAN_ST@
+0 @I_PAVEL@ INDI
+1 NAME Pavel /Dias/
+1 SEX M
+1 BIRT
+2 DATE ABT 1585
+1 OCCU Purkmistr Ivanovic na Hané
+1 FAMC @F_JAN_ST@
+0 @I_BURCKHART@ INDI
+1 NAME Burckhart /Dias/
+1 SEX M
+1 BIRT
+2 DATE ABT 1590
+1 OCCU Mlynář
+1 FAMC @F_JAN_ST@
+0 @I1@ INDI
+1 NAME Václav (Mlynář) /Dias/
+1 SEX M
+1 BIRT
+2 DATE ABT 1595
+2 PLAC Ivanovice na Hané, Moravia
+1 FAMC @F_JAN_ST@
+1 FAMS @F1@
+0 @I2@ INDI
+1 NAME Tomáš /Dias/
+1 SEX M
+1 BIRT
+2 DATE ABT 1630
+2 PLAC Ivanovice na Hané, Moravia
+1 OCCU Mlynář
+1 FAMC @F1@
+1 FAMS @F2@
+0 @I3@ INDI
+1 NAME Marina //
+1 SEX F
+1 FAMS @F2@
+0 @I4@ INDI
+1 NAME Jan (Joannes) st. /Dias/
+1 SEX M
+1 BIRT
+2 DATE 25 JUN 1664
+2 PLAC Ivanovice na Hané, Moravia
+1 DEAT
+2 DATE BEF 1717
+1 FAMC @F2@
+1 FAMS @F3@
+0 @I5@ INDI
+1 NAME Alžběta (Elisabeth) //
+1 SEX F
+1 FAMS @F3@
+0 @I6@ INDI
+1 NAME Václav (Wenzel) st. /Dias/
+1 SEX M
+1 BIRT
+2 DATE JAN 1694
+2 PLAC Ivanovice na Hané, Moravia
+1 FAMC @F3@
+1 FAMS @F4@
+0 @I7@ INDI
+1 NAME Barbora /Dvořáková/
+1 SEX F
+1 FAMS @F4@
+0 @I8@ INDI
+1 NAME Jan (Joannes) /Dias/
+1 SEX M
+1 BIRT
+2 DATE ABT 1720
+2 PLAC Ivanovice na Hané, Moravia
+1 DEAT
+2 DATE BEF 1793
+1 OCCU Panský mlynář
+1 FAMC @F4@
+1 FAMS @F5@
+0 @I9@ INDI
+1 NAME Mariana //
+1 SEX F
+1 FAMS @F5@
+0 @I10@ INDI
+1 NAME Jakub /Dias/
+1 SEX M
+1 BIRT
+2 DATE 1771
+2 PLAC Ivanovice na Hané, Moravia
+1 DEAT
+2 DATE BEF 1838
+1 OCCU Pachtmüller
+1 FAMC @F5@
+1 FAMS @F6@
+0 @I11@ INDI
+1 NAME Mariana //
+1 SEX F
+1 BIRT
+2 DATE 1771
+1 DEAT
+2 DATE 1849
+2 PLAC Zlobice
+1 FAMS @F6@
+0 @I12@ INDI
+1 NAME František st. /Dias/
+1 SEX M
+1 BIRT
+2 DATE 1814
+1 OCCU Mlynář ve Zlobicích
+1 FAMC @F6@
+1 FAMS @F7@
+0 @I13@ INDI
+1 NAME Antonia /Pospíšilová/
+1 SEX F
+1 BIRT
+2 DATE 1817
+1 DEAT
+2 DATE 1891
+1 FAMS @F7@
+0 @I14@ INDI
+1 NAME František ml. /Dias/
+1 SEX M
+1 BIRT
+2 DATE 3 JAN 1845
+2 PLAC Zlobice
+1 DEAT
+2 DATE 1928
+1 FAMC @F7@
+1 FAMS @F8@
+0 @I15@ INDI
+1 NAME Mariana /Manová/
+1 SEX F
+1 BIRT
+2 DATE 28 MAY 1854
+1 FAMS @F8@
+0 @I16@ INDI
+1 NAME Alois /Dias/
+1 SEX M
+1 BIRT
+2 DATE 11 MAY 1888
+2 PLAC Zlobice
+1 DEAT
+2 DATE 2 NOV 1974
+2 PLAC Morkovice
+1 FAMC @F8@
+1 FAMS @F9@
+0 @I17@ INDI
+1 NAME Josefa /Přikrylová/
+1 SEX F
+1 BIRT
+2 DATE 2 FEB 1889
+1 DEAT
+2 DATE 17 NOV 1968
+1 FAMS @F9@
+0 @I18@ INDI
+1 NAME Zdeněk st. /Dias/
+1 SEX M
+1 BIRT
+2 DATE 5 OCT 1925
+2 PLAC Morkovice
+1 DEAT
+2 DATE 2 OCT 1999
+1 FAMC @F9@
+1 FAMS @F10@
+0 @I19@ INDI
+1 NAME Naděžda //
+1 SEX F
+1 FAMS @F10@
+0 @I20@ INDI
+1 NAME Zdeněk ml. /Dias/
+1 SEX M
+1 BIRT
+2 DATE 17 JUN 1957
+1 FAMC @F10@
+1 FAMS @F11@
+0 @I21@ INDI
+1 NAME Renata //
+1 SEX F
+1 BIRT
+2 DATE 1962
+1 FAMS @F11@
+0 @I22@ INDI
+1 NAME Bc. Zdeněk /Dias/
+1 SEX M
+1 BIRT
+2 DATE 1991
+1 FAMC @F11@
+0 @F_JAN_ST@ FAM
+1 HUSB @I_JAN_ST@
+1 CHIL @I_PAVEL@
+1 CHIL @I_BURCKHART@
+1 CHIL @I1@
+0 @F1@ FAM
+1 HUSB @I1@
+1 CHIL @I2@
+0 @F2@ FAM
+1 HUSB @I2@
+1 WIFE @I3@
+1 CHIL @I4@
+0 @F3@ FAM
+1 HUSB @I4@
+1 WIFE @I5@
+1 CHIL @I6@
+0 @F4@ FAM
+1 HUSB @I6@
+1 WIFE @I7@
+1 CHIL @I8@
+0 @F5@ FAM
+1 HUSB @I8@
+1 WIFE @I9@
+1 CHIL @I10@
+0 @F6@ FAM
+1 HUSB @I10@
+1 WIFE @I11@
+1 CHIL @I12@
+0 @F7@ FAM
+1 HUSB @I12@
+1 WIFE @I13@
+1 CHIL @I14@
+0 @F8@ FAM
+1 HUSB @I14@
+1 WIFE @I15@
+1 CHIL @I16@
+0 @F9@ FAM
+1 HUSB @I16@
+1 WIFE @I17@
+1 CHIL @I18@
+1 MARR
+2 DATE 16 JUN 1913
+0 @F10@ FAM
+1 HUSB @I18@
+1 WIFE @I19@
+1 CHIL @I20@
+0 @F11@ FAM
+1 HUSB @I20@
+1 WIFE @I21@
+1 CHIL @I22@
+0 TRLR
+"""
+desk_path = os.path.expanduser("~/Desktop/rodokmen_dias_komplet_novy.ged")
+with open(desk_path, "w", encoding="utf-8") as f:
+    f.write(gedcom_content)

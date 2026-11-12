@@ -77,7 +77,7 @@ def main():
             
         print(f"Starting deep search across {len(BOOK_IDS)} books...")
         
-        query = "Hledej POUZE příjmení Dias (nebo podobné varianty jako Diaz, Dius). Je na této stránce uveden někdo s tímto příjmením? Pokud ANO, vypiš stručně všechny detaily k dané osobě (datum, jméno, událost). Pokud NE, odpověz přesně slovem: NENALEZENO."
+        query = "Hledej POUZE příjmení Dias (nebo podobné varianty jako Diaz, Dius, Dyas). Je na této stránce uveden někdo s tímto příjmením? Pokud ANO, vypiš detailně všechny informace k dané osobě (datum, jméno, událost). DÁVEJ VELKÝ POZOR i na jakékoliv poznámky o tom, odkud osoba pochází, kde se narodila, zda je přistěhovalá, jakou má profesi (např. mlynář), nebo další doplňující detaily a texty. Pokud NE, odpověz přesně slovem: NENALEZENO."
 
         for book_id in BOOK_IDS:
             book_id_str = str(book_id)
@@ -101,68 +101,103 @@ def main():
             out_dir = f"mza_book_{book_id}"
             os.makedirs(out_dir, exist_ok=True)
             
-            for i in range(last_processed + 1, total_scans + 1):
+            import concurrent.futures
+            import threading
+            
+            download_lock = threading.Lock()
+
+            def process_scan(i):
                 img_path = os.path.join(out_dir, f"scan_{i:04d}.jpg")
                 
-                # Download if missing
-                if not os.path.exists(img_path):
-                    print(f"  [{book_id}] Downloading {i}/{total_scans}...")
-                    try:
-                        scanner.download_scan(book_id, i, img_path)
-                        time.sleep(0.5)
-                    except Exception as e:
-                        print(f"  Error downloading {i}: {e}")
-                        continue
+                with download_lock:
+                    if os.path.exists(img_path) and os.path.getsize(img_path) == 0:
+                        os.remove(img_path)
+                        
+                    download_success = False
+                    for d_attempt in range(5):
+                        if not os.path.exists(img_path):
+                            print(f"  [{book_id}] Downloading {i}/{total_scans} sequentially (Attempt {d_attempt+1})...")
+                            try:
+                                scanner.download_scan(book_id, i, img_path)
+                                time.sleep(1) # Malá pauza, ať neshodíme archiv
+                                download_success = True
+                                break
+                            except Exception as e:
+                                print(f"  Error downloading {i}: {e}")
+                                if os.path.exists(img_path):
+                                    os.remove(img_path)
+                                time.sleep(10)
+                        else:
+                            download_success = True
+                            break
+                            
+                    if not download_success:
+                        return i, False, None
                 
-                # AI Analysis with exponential backoff for quota errors
-                max_retries = 5
+                max_retries = 20
                 retry_count = 0
                 while retry_count < max_retries:
                     print(f"  [{book_id}] AI Analyzing {i}/{total_scans} (Attempt {retry_count+1})...")
                     try:
                         result = ai_reader.query_image(img_path, query)
                         
-                        # Handle quota error strictly
-                        if "RESOURCE_EXHAUSTED" in result or "quota" in result.lower():
-                            wait_time = 60 * (2 ** retry_count) # 60s, 120s, 240s...
-                            print(f"  !!! Quota Exceeded. Waiting {wait_time}s...")
-                            time.sleep(wait_time) 
+                        if "503 UNAVAILABLE" in result:
+                            time.sleep(30)
                             retry_count += 1
                             continue
-                        
-                        # Handle other errors
-                        if "Error" in result:
-                            print(f"  !!! AI Error: {result}. Retrying in 10s...")
+                        elif "RESOURCE_EXHAUSTED" in result or "quota" in result.lower():
+                            time.sleep(60)
+                            retry_count += 1
+                            continue
+                        elif "Error" in result:
+                            print(f"  [{book_id}] Error in API result for scan {i}: {result}")
                             time.sleep(10)
                             retry_count += 1
                             continue
-
-                        # Success! Check if something was found
-                        if "NENALEZENO" not in result.upper() and result.strip() != "":
-                            print(f"  *** FOUND SOMETHING ON SCAN {i}! ***")
-                            writer.writerow([
-                                book_id,
-                                f"https://www.mza.cz/actapublica/matrika/detail/{book_id}",
-                                f"Sken {i}",
-                                result.strip()
-                            ])
-                            csvfile.flush()
-                        
-                        # Mark as processed in checkpoint
-                        checkpoint[book_id_str] = i
-                        save_checkpoint(checkpoint)
-                        time.sleep(2) # Normal delay between success requests
-                        break 
-                        
-                    except Exception as e:
-                        print(f"  Unexpected AI Error on {i}: {e}")
+                        return i, True, result.strip()
+                    except concurrent.futures.TimeoutError:
+                        print(f"  [{book_id}] Timeout Error for {i}, retrying...")
+                        time.sleep(5)
                         retry_count += 1
+                    except Exception as e:
                         time.sleep(10)
+                        retry_count += 1
+                return i, False, None
+
+            chunk_size = 5
+            for chunk_start in range(last_processed + 1, total_scans + 1, chunk_size):
+                chunk_end = min(chunk_start + chunk_size, total_scans + 1)
                 
-                if retry_count == max_retries:
-                    print(f"  FAILED to process scan {i} after {max_retries} attempts. Zastavuji skript, aby nedošlo k přeskočení stránek.")
-                    print(f"  Až budete mít opět k dispozici tokeny (např. zítra), skript začne automaticky od skenu {i}.")
-                    sys.exit(1)
+                # Uložíme výsledky, abychom je mohli zapsat popořadě (volitelné, ale bezpečnější pro CSV)
+                results_buffer = []
+                
+                with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+                    futures = [executor.submit(process_scan, i) for i in range(chunk_start, chunk_end)]
+                    for future in concurrent.futures.as_completed(futures):
+                        i, success, result = future.result()
+                        if not success:
+                            print(f"  FAILED to process scan {i}. Zastavuji skript.")
+                            sys.exit(1)
+                        if result and "NENALEZENO" not in result.upper():
+                            print(f"  *** FOUND SOMETHING ON SCAN {i}! ***")
+                            results_buffer.append((i, result))
+                
+                # Zapíšeme nálezy z tohoto chunku
+                # Setřídíme podle čísla skenu pro pořádek v CSV
+                results_buffer.sort(key=lambda x: x[0])
+                for i, result in results_buffer:
+                    writer.writerow([
+                        book_id,
+                        f"https://www.mza.cz/actapublica/matrika/detail/{book_id}",
+                        f"Sken {i}",
+                        result
+                    ])
+                    csvfile.flush()
+                
+                # Checkpoint po dokončení celé dávky 5 stran
+                checkpoint[book_id_str] = chunk_end - 1
+                save_checkpoint(checkpoint)
+                time.sleep(1)
             
             print(f"Finished current batch of book {book_id}")
 

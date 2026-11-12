@@ -1,0 +1,37 @@
+# Skeny smazané 12. 11. 2026 kvůli místu na disku.
+# Stáhnout znovu: src/mza_search/scanner.py → download_scan(book_id, scan_number, cesta)
+# kniha<TAB>počet skenů<TAB>velikost
+10388	355	1.3G
+10504	556	759M
+11527	381	1.5G
+12694	46	108M
+12696	32	 88M
+12884	38	182M
+13127	266	685M
+13363	125	417M
+1350	111	120M
+1353	226	686M
+1354	236	788M
+1355	294	1.1G
+1356	253	823M
+1359	306	1.5G
+1362	238	967M
+1367	214	409M
+1368	325	1.3G
+488	470	391M
+gruntovni_107	253	138M
+zlobice_7942	173	778M
+zlobice_7943	371	706M
+zlobice_7944	215	411M
+zlobice_7945	406	802M
+zlobice_7946	496	920M
+zlobice_7947	395	933M
+zlobice_7987	344	698M
+zlobice_7988	284	527M
+zlobice_8585	27	 13M
+zlobice_8586	27	 40M
+zlobice_8591	147	305M
+zlobice_8592	73	125M
+zlobice_8593	59	 93M
+zlobice_8597	138	205M
+zlobice_8598	139	270M

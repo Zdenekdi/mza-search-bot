@@ -1,0 +1,216 @@
+gedcom_content = """0 HEAD
+1 SOUR AntigravityAI
+2 NAME Google Antigravity
+1 SUBM @U1@
+1 GEDC
+2 VERS 5.5.1
+2 FORM LINEAGE-LINKED
+1 CHAR UTF-8
+0 @U1@ SUBM
+1 NAME Zdeněk Dias
+0 @I1@ INDI
+1 NAME Jiri /Dyas/
+1 SEX M
+1 BIRT
+2 DATE ABT 1675
+2 PLAC Ivanovice na Hané, Moravia
+1 FAMS @F1@
+0 @I2@ INDI
+1 NAME Jiri /Dyas/
+1 SEX M
+1 BIRT
+2 DATE ABT 1700
+1 MARR
+2 DATE 10 AUG 1724
+2 PLAC Ivanovice na Hané
+2 WIFE Anna Vaclavova Hauska
+1 FAMC @F1@
+0 @F1@ FAM
+1 HUSB @I1@
+1 CHIL @I2@
+0 @I3@ INDI
+1 NAME Waclaw (Vaclav) /Dyas/
+1 SEX M
+1 BIRT
+2 DATE ABT 1695
+1 OCCU mlynar na Svitavce
+1 FAMS @F2@
+0 @I4@ INDI
+1 NAME Anna //
+1 SEX F
+1 FAMS @F2@
+0 @I5@ INDI
+1 NAME Adam /Dyas/
+1 SEX M
+1 BIRT
+2 DATE 24 JUL 1722
+2 PLAC Ivanovice na Hané (Zlobice)
+1 FAMC @F2@
+0 @I6@ INDI
+1 NAME Wenceslaus (Vaclav) /Dijas/
+1 SEX M
+1 BIRT
+2 DATE ABT 1725
+1 FAMS @F3@
+1 FAMC @F2@
+0 @I7@ INDI
+1 NAME Frantiska //
+1 SEX F
+1 FAMS @F3@
+0 @I8@ INDI
+1 NAME Jakub /Dias/
+1 SEX M
+1 BIRT
+2 DATE ABT 1756
+1 DEAT
+2 DATE BEF NOV 1838
+1 OCCU Pachtyr na panskem mlyne
+1 PLAC Ivanovice na Hané
+1 FAMS @F4@
+1 FAMC @F3@
+0 @I9@ INDI
+1 NAME Mariana //
+1 SEX F
+1 BIRT
+2 DATE ABT 1771
+1 DEAT
+2 DATE 1849
+2 PLAC Zlobice
+1 FAMS @F4@
+0 @I10@ INDI
+1 NAME Frantisek /Dias/
+1 SEX M
+1 BIRT
+2 DATE ABT 1811
+2 PLAC Ivanovice na Hané
+1 OCCU Mlynarsky mistr
+1 FAMS @F5@
+1 FAMC @F4@
+0 @I11@ INDI
+1 NAME Antonia /Pospisil/
+1 SEX F
+1 BIRT
+2 DATE ABT 1817
+1 DEAT
+2 DATE 1891
+2 PLAC Zlobice 82
+1 FAMS @F5@
+0 @I12@ INDI
+1 NAME Frantisek /Dias/
+1 SEX M
+1 BIRT
+2 DATE 3 JAN 1845
+2 PLAC Zlobice
+1 DEAT
+2 DATE 1928
+1 OCCU Pullanik ve Zlobicich 18
+1 FAMS @F6@
+1 FAMC @F5@
+0 @I13@ INDI
+1 NAME Mariana /Man/
+1 SEX F
+1 BIRT
+2 DATE 28 MAY 1854
+2 PLAC Zlobice
+1 FAMS @F6@
+0 @I14@ INDI
+1 NAME Alois /Dias/
+1 SEX M
+1 BIRT
+2 DATE 11 MAY 1888
+2 PLAC Zlobice
+1 DEAT
+2 DATE 2 NOV 1974
+1 FAMS @F7@
+1 FAMC @F6@
+0 @I15@ INDI
+1 NAME Josefa /Prikrylova/
+1 SEX F
+1 BIRT
+2 DATE 2 FEB 1889
+2 PLAC Nitkovice
+1 DEAT
+2 DATE 17 NOV 1968
+1 FAMS @F7@
+0 @I16@ INDI
+1 NAME Zdenek /Dias/
+1 SEX M
+1 BIRT
+2 DATE 5 OCT 1925
+2 PLAC Morkovice
+1 DEAT
+2 DATE 2 OCT 1999
+1 OCCU Sedlar
+1 FAMS @F8@
+1 FAMC @F7@
+0 @I17@ INDI
+1 NAME Nadezda //
+1 SEX F
+1 FAMS @F8@
+0 @I18@ INDI
+1 NAME Zdenek /Dias/
+1 SEX M
+1 BIRT
+2 DATE 17 JUN 1957
+1 FAMS @F9@
+1 FAMC @F8@
+0 @I19@ INDI
+1 NAME Renata //
+1 SEX F
+1 BIRT
+2 DATE 1962
+1 FAMS @F9@
+0 @I20@ INDI
+1 NAME Zdenek /Dias/
+1 SEX M
+1 BIRT
+2 DATE 1991
+1 FAMC @F9@
+0 @F2@ FAM
+1 HUSB @I3@
+1 WIFE @I4@
+1 CHIL @I5@
+1 CHIL @I6@
+0 @F3@ FAM
+1 HUSB @I6@
+1 WIFE @I7@
+1 CHIL @I8@
+0 @F4@ FAM
+1 HUSB @I8@
+1 WIFE @I9@
+1 CHIL @I10@
+0 @F5@ FAM
+1 HUSB @I10@
+1 WIFE @I11@
+1 MARR
+2 DATE NOV 1838
+2 PLAC Zlobice
+1 CHIL @I12@
+0 @F6@ FAM
+1 HUSB @I12@
+1 WIFE @I13@
+1 MARR
+2 DATE 4 FEB 1873
+2 PLAC Zlobice
+1 CHIL @I14@
+0 @F7@ FAM
+1 HUSB @I14@
+1 WIFE @I15@
+1 MARR
+2 DATE 16 JUN 1913
+1 CHIL @I16@
+0 @F8@ FAM
+1 HUSB @I16@
+1 WIFE @I17@
+1 CHIL @I18@
+0 @F9@ FAM
+1 HUSB @I18@
+1 WIFE @I19@
+1 CHIL @I20@
+0 TRLR
+"""
+
+with open("/Users/zdenekdias/Desktop/rodokmen_dias_komplet_novy.ged", "w") as f:
+    f.write(gedcom_content)
+
+print("GEDCOM soubor uspesne vygenerovan na plochu uzivatele.")

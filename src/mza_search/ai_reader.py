@@ -142,7 +142,7 @@ class AppleLocalReader:
     a porovnává ho s předem načteným rodokmenem (family tree).
     """
     def __init__(self):
-        self.base_url = "http://localhost:11435/v1"
+        self.base_url = "http://localhost:11434/v1"
         self.model = "gemma2:2b"
         self.available = True
         
@@ -266,7 +266,7 @@ class GeminiReader:
         if 'GEMINI_API_KEY' not in os.environ and 'GOOGLE_API_KEY' not in os.environ:
             raise ValueError("GEMINI_API_KEY nebo GOOGLE_API_KEY není nastaven.")
         self.client = google.genai.Client()
-        self.model_name = 'gemini-2.0-flash'
+        self.model_name = 'gemini-3.5-flash-lite'
         
         # Načtení rodokmenu
         self.family_tree = ""
@@ -281,6 +281,12 @@ class GeminiReader:
     def query_image(self, image_path: str, prompt: str) -> str:
         try:
             img = Image.open(image_path)
+            # Optimalizace velikosti pro Gemini (max 4096 px)
+            max_size = 4096
+            if max(img.size) > max_size:
+                ratio = max_size / max(img.size)
+                new_size = (int(img.width * ratio), int(img.height * ratio))
+                img = img.resize(new_size, Image.Resampling.LANCZOS)
             
             system_prompt = (
                 "Jsi expert na genealogii a čtení historických matrik (17.-19. století) psaných kurentem a starou němčinou/češtinou.\n"
@@ -294,10 +300,21 @@ class GeminiReader:
                 "Pokud žádnou spojitost nevidíš, vrať POUZE slovo 'NENALEZENO'."
             )
             
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=[system_prompt, img]
-            )
+            import concurrent.futures
+            def do_call():
+                return self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=[system_prompt, img]
+                )
+            
+            pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+            future = pool.submit(do_call)
+            try:
+                response = future.result(timeout=300)
+                pool.shutdown(wait=False)
+            except concurrent.futures.TimeoutError:
+                pool.shutdown(wait=False, cancel_futures=True)
+                return "Error: Gemini API Timeout (300s)"
             
             answer = response.text
             if "NENALEZENO" in answer.upper() and len(answer) < 50:

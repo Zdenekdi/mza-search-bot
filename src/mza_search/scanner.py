@@ -82,7 +82,7 @@ class MZAScanner:
         dzi_url = self.get_image_info(book_id, scan_number)
         
         # 1. Fetch DZI metadata
-        res = self.client.client.get(dzi_url)
+        res = self.client.client.get(dzi_url, timeout=30)
         res.raise_for_status()
         
         # Parse DZI XML
@@ -93,24 +93,29 @@ class MZAScanner:
         # Max zoom level
         max_level = math.ceil(math.log2(max(width, height)))
         
-        num_cols = math.ceil(width / tile_size)
-        num_rows = math.ceil(height / tile_size)
+        # Zmenšíme zoom level o 1 pro 4x rychlejší stahování (plně dostačuje pro AI)
+        target_level = max_level - 1
+        # Nové rozměry pro poloviční rozlišení
+        target_width = math.ceil(width / 2)
+        target_height = math.ceil(height / 2)
+        
+        num_cols = math.ceil(target_width / tile_size)
+        num_rows = math.ceil(target_height / tile_size)
         
         # Construct tile URL base
-        # dzi_url: https://.../iipsrv.fcgi?Deepzoom=/srv/path/to/image.jp2.dzi
-        # tile_url: https://.../iipsrv.fcgi?Deepzoom=/srv/path/to/image.jp2_files/level/col_row.jpg
         tile_base = dzi_url.replace(".dzi", "_files")
         
-        full_image = Image.new('RGB', (width, height))
+        full_image = Image.new('RGB', (target_width, target_height))
+        print(f"Stitching {num_cols}x{num_rows} tiles for scan {scan_number} at level {target_level}...")
         print(f"Stitching {num_cols}x{num_rows} tiles for scan {scan_number}...")
         
         for r in range(num_rows):
             for c in range(num_cols):
-                tile_url = f"{tile_base}/{max_level}/{c}_{r}.jpg"
+                tile_url = f"{tile_base}/{target_level}/{c}_{r}.jpg"
                 success = False
                 for attempt in range(3):
                     try:
-                        tile_res = self.client.client.get(tile_url)
+                        tile_res = self.client.client.get(tile_url, timeout=30)
                         if tile_res.status_code == 200:
                             tile_img = Image.open(io.BytesIO(tile_res.content))
                             full_image.paste(tile_img, (c * tile_size, r * tile_size))

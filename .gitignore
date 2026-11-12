@@ -11,3 +11,8 @@ detail_*.html
 search_results_*.txt
 search_births.txt
 search_deaths.txt
+
+# volně ležící skeny v kořeni — stáhnou se znovu přes scanner.py
+book_*_scan_*.jpg
+# nedokončené soubory z kopírování
+.!*
